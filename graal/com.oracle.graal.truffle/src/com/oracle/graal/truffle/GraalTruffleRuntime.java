@@ -27,6 +27,7 @@ import static com.oracle.graal.truffle.TruffleCompilerOptions.TruffleCompileOnly
 import static com.oracle.graal.truffle.TruffleCompilerOptions.TruffleEnableInfopoints;
 
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -65,6 +66,7 @@ import com.oracle.graal.truffle.debug.TraceCompilationListener;
 import com.oracle.graal.truffle.debug.TraceCompilationPolymorphismListener;
 import com.oracle.graal.truffle.debug.TraceInliningListener;
 import com.oracle.graal.truffle.debug.TraceSplittingListener;
+import com.oracle.graal.truffle.nodes.MethodHandleJavaMethodCallNode;
 import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
@@ -78,6 +80,7 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
+import com.oracle.truffle.api.nodes.JavaMethodCallNode;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RepeatingNode;
@@ -555,5 +558,9 @@ public abstract class GraalTruffleRuntime implements TruffleRuntime {
         public static CallMethods lookup(MetaAccessProvider metaAccess) {
             return new CallMethods(metaAccess);
         }
+    }
+
+    public JavaMethodCallNode createJavaMethodCallNode(Method reflectionMethod) {
+        return MethodHandleJavaMethodCallNode.create(reflectionMethod);
     }
 }
