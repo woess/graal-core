@@ -71,7 +71,6 @@ import com.oracle.truffle.api.nodes.NodeUtil;
 import com.oracle.truffle.api.nodes.NodeVisitor;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.profiles.ValueProfile;
-import com.oracle.truffle.api.utilities.CyclicAssumption;
 
 /**
  * Call target that is optimized by Graal upon surpassing a specific invocation threshold.
@@ -106,7 +105,7 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
      * assumption. It gets invalidated when a node rewriting is performed. This ensures that all
      * compiled methods that have this call target inlined are properly invalidated.
      */
-    private final CyclicAssumption nodeRewritingAssumption;
+    private volatile Assumption nodeRewritingAssumption;
 
     private volatile Future<?> compilationTask;
 
@@ -128,7 +127,6 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
         } else {
             this.compilationProfile = new CompilationProfile();
         }
-        this.nodeRewritingAssumption = new CyclicAssumption(!TraceTruffleAssumptions.getValue() ? NODE_REWRITING_ASSUMPTION_NAME : NODE_REWRITING_ASSUMPTION_NAME + " of " + rootNode);
     }
 
     public final void log(String message) {
@@ -147,7 +145,31 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
     }
 
     public Assumption getNodeRewritingAssumption() {
-        return nodeRewritingAssumption.getAssumption();
+        Assumption assumption = nodeRewritingAssumption;
+        if (assumption != null) {
+            return assumption;
+        }
+        synchronized (this) {
+            assumption = nodeRewritingAssumption;
+            if (assumption == null) {
+                assumption = nodeRewritingAssumption = newNodeRewritingAssumption();
+            }
+            return assumption;
+        }
+    }
+
+    private void invalidateNodeRewritingAssumption() {
+        synchronized (this) {
+            Assumption assumption = nodeRewritingAssumption;
+            if (assumption != null) {
+                assumption.invalidate();
+                nodeRewritingAssumption = newNodeRewritingAssumption();
+            }
+        }
+    }
+
+    private Assumption newNodeRewritingAssumption() {
+        return runtime.createAssumption(!TraceTruffleAssumptions.getValue() ? NODE_REWRITING_ASSUMPTION_NAME : NODE_REWRITING_ASSUMPTION_NAME + " of " + rootNode);
     }
 
     public int getCloneIndex() {
@@ -520,7 +542,7 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
             invalidate(newNode, reason);
         }
         /* Notify compiled method that have inlined this call target that the tree changed. */
-        nodeRewritingAssumption.invalidate();
+        invalidateNodeRewritingAssumption();
 
         compilationProfile.reportNodeReplaced();
         if (cancelInstalledTask(newNode, reason)) {
