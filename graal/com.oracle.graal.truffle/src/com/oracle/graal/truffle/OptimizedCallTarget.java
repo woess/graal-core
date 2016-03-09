@@ -22,6 +22,7 @@
  */
 package com.oracle.graal.truffle;
 
+import static com.oracle.graal.truffle.TruffleCompilerOptions.TraceTruffleAssumptions;
 import static com.oracle.graal.truffle.TruffleCompilerOptions.TruffleArgumentTypeSpeculation;
 import static com.oracle.graal.truffle.TruffleCompilerOptions.TruffleBackgroundCompilation;
 import static com.oracle.graal.truffle.TruffleCompilerOptions.TruffleCallTargetProfiling;
@@ -43,6 +44,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import jdk.vm.ci.code.BailoutException;
+import jdk.vm.ci.code.InstalledCode;
+import jdk.vm.ci.common.JVMCIError;
+import jdk.vm.ci.meta.SpeculationLog;
 
 import com.oracle.graal.truffle.debug.AbstractDebugCompilationListener;
 import com.oracle.truffle.api.Assumption;
@@ -67,16 +73,12 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.profiles.ValueProfile;
 import com.oracle.truffle.api.utilities.CyclicAssumption;
 
-import jdk.vm.ci.code.BailoutException;
-import jdk.vm.ci.code.InstalledCode;
-import jdk.vm.ci.common.JVMCIError;
-import jdk.vm.ci.meta.SpeculationLog;
-
 /**
  * Call target that is optimized by Graal upon surpassing a specific invocation threshold.
  */
 public class OptimizedCallTarget extends InstalledCode implements RootCallTarget, LoopCountReceiver, ReplaceObserver {
     private static final RootNode UNINITIALIZED = RootNode.createConstantNode(null);
+    private static final String NODE_REWRITING_ASSUMPTION_NAME = "nodeRewritingAssumption";
 
     protected final GraalTruffleRuntime runtime;
     private SpeculationLog speculationLog;
@@ -126,7 +128,7 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
         } else {
             this.compilationProfile = new CompilationProfile();
         }
-        this.nodeRewritingAssumption = new CyclicAssumption("nodeRewritingAssumption of " + rootNode.toString());
+        this.nodeRewritingAssumption = new CyclicAssumption(!TraceTruffleAssumptions.getValue() ? NODE_REWRITING_ASSUMPTION_NAME : NODE_REWRITING_ASSUMPTION_NAME + " of " + rootNode);
     }
 
     public final void log(String message) {
