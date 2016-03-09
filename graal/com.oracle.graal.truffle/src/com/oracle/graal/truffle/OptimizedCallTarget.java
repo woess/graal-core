@@ -92,7 +92,7 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
     @CompilationFinal private Assumption profiledReturnTypeAssumption;
 
     private final RootNode rootNode;
-    private volatile RootNode uninitializedRootNode = UNINITIALIZED;
+    private RootNode uninitializedRootNode = UNINITIALIZED;
 
     private TruffleInlining inlining;
     private int cachedNonTrivialNodeCount = -1;
