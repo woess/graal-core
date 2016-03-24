@@ -313,7 +313,7 @@ public abstract class GraalTruffleRuntime implements TruffleRuntime {
 
     @Override
     public <T> T getCapability(Class<T> capability) {
-        if (capability.isAssignableFrom(TVMCI.class)) {
+        if (capability == TVMCI.class) {
             return capability.cast(tvmci);
         }
         return null;

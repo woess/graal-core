@@ -22,7 +22,9 @@
  */
 package com.oracle.graal.truffle.test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -33,8 +35,6 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleRuntime;
 import com.oracle.truffle.api.impl.DefaultTruffleRuntime;
 import com.oracle.truffle.api.impl.TVMCI;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
 
 public class TruffleRuntimeTest {
 
@@ -62,6 +62,11 @@ public class TruffleRuntimeTest {
         assertEquals("GraalTVMCI", tvmci.getClass().getSimpleName());
 
         Object object = runtime.getCapability(Object.class);
-        assertSame("The same instance returned for Object.class", tvmci, object);
+        assertNull("null returned for Object.class", object);
+
+        abstract class TVMCISubclass extends TVMCI {
+        }
+        TVMCISubclass subclass = runtime.getCapability(TVMCISubclass.class);
+        assertNull("null returned for TVMCI subclass", subclass);
     }
 }
